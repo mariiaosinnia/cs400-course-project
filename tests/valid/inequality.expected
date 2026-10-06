@@ -1,0 +1,9 @@
+ProgramNode @1:1
+  statements:
+    VarDeclNode @1:1 storage=immutable type=bool name=different
+      initializer:
+        BinaryExprNode @1:24 operator=✂️
+          left:
+            NumberNode @1:23 value=1
+          right:
+            NumberNode @1:30 value=2

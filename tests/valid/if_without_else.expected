@@ -1,0 +1,9 @@
+ProgramNode @1:1
+  statements:
+    IfNode @1:1 has_else=false
+      condition:
+        BoolNode @1:9 value=true
+      then:
+        AssignNode @1:16 name=x
+          value:
+            NumberNode @1:21 value=1

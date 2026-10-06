@@ -1,0 +1,5 @@
+ProgramNode @3:1
+  statements:
+    VarDeclNode @3:1 storage=mutable type=i32 name=x
+      initializer:
+        NumberNode @3:15 value=1

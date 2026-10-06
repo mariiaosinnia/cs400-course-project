@@ -1,0 +1,35 @@
+Program         ::= Stmt ( [ "🪡" ] Stmt )* [ "🪡" ] EOF
+Block           ::= "{" Stmt ( [ "🪡" ] Stmt )* [ "🪡" ] "}"
+Stmt            ::= VarDecl | Assign | IfStmt
+VarDecl         ::= Mutability Type Ident "💧" Expr
+Mutability      ::= "🪵" | "🌿" | "🧊"
+Type            ::= "🌰" | "🌳" | "🌸"
+Assign          ::= Ident "💧" Expr
+IfStmt          ::= IfKeyword Expr Block [ ElseKeyword Block ]
+IfKeyword       ::= "🌤" | "🌤️"
+ElseKeyword     ::= "🌧" | "🌧️"
+
+Expr            ::= AddExpr [ ComparisonOp AddExpr ]
+ComparisonOp    ::= EqualOp | NotEqualOp
+EqualOp         ::= "⚖" | "⚖️"
+NotEqualOp      ::= "✂" | "✂️"
+AddExpr         ::= Term (("+" | "-") Term)*
+Term            ::= Factor (("*" | "/") Factor)*
+Factor          ::= Number | BoolLit | Ident | OverflowCheck | "(" Expr ")"
+OverflowCheck   ::= "🪴" "(" Expr ")"
+BoolLit         ::= "🍎" | "🍏"
+Number          ::= [0-9]+
+Ident           ::= [a-zA-Z_][a-zA-Z0-9_]*
+EOF             ::= end of input
+
+(* Layout rule: line feeds are whitespace. If a Stmt starts on the same
+	line where the previous Stmt ended, "🪡" must stand between them.
+	"🪡" is not allowed between the closing "}" of an if-block and ElseKeyword
+	(it is a separator, and ElseKeyword does not start a Stmt).
+
+	There are no comments. Emoji terminals are exact UTF-8 byte sequences.
+	A leading UTF-8 BOM is ignored. Parentheses only group expressions and do
+	not add an AST node. The parser accepts one optional comparison per Expr.
+	Arithmetic operators are left-associative; * and / bind more tightly than
+	+ and -.
+*)

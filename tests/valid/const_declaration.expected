@@ -1,0 +1,5 @@
+ProgramNode @1:1
+  statements:
+    VarDeclNode @1:1 storage=const type=i32 name=cap
+      initializer:
+        NumberNode @1:17 value=1
