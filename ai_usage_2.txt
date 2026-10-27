@@ -1,0 +1,46 @@
+AI USAGE DISCLOSURE — Sprout Project Stage 2
+Student: Mariia Osinnia
+Date: 2026-10-27
+
+TOOLS USED
+- GitHub Copilot Chat in VS Code (Copilot SDK); the model name was not exposed.
+- Copilot workspace tools used: `functions.view`, `functions.rg`,
+  `functions.bash`, `functions.apply_patch`, and
+  `multi_tool_use.parallel`.
+- Python 3.12, llvmlite 0.50.0 (installed in a temporary venv for validation),
+  LLVM llc 18.1.3, and clang 18.1.3.
+- No remote code-generation or repository service was used. The required
+  llvmlite dependency is declared in requirements.txt; the temporary virtual
+  environment is not part of the repository.
+
+PROMPTS AS SENT
+
+- Implement the attached Stage 2 requirements: functions with typed parameters and result types, structures with mutable/constant fields, member functions, read and print, semantic analysis as a separate pass, LLVM IR through llvmlite.ir only, one-line diagnostics, tests (20+ valid, 20+ invalid, 10+ end to end, one with a .in file), grammar.ebnf, README.md. Keep every Stage 1 program valid. Run run_tests.py and report any failing test.
+
+- Check your last summary against the actual code. For each claim, say
+"confirmed" or "not done" and show the file or test as proof:
+
+1. name lookup and mutability checks for nested fields and member calls
+2. parsing of return with parentheses
+3. new tests for these cases and for division by zero / minimum value divided by -1
+4. updated README rules
+5. run_tests.py marks a program that exceeds the time limit as failed and
+   continues with the other tests (prove it with a program that never ends)
+
+Then run run_tests.py with real llc and clang and show the result.
+Change nothing unless a claim is false.
+
+
+UNDERSTANDING
+
+I did not write the Stage 2 code myself. An AI agent generated it, and I asked it to re-check its work and fix mistakes. This is how I understand it.
+
+The compiler works in steps. The lexer reads the file as UTF-8 bytes and splits it into tokens (emoji and ASCII words). The parser builds a tree of the program, with one function per grammar rule. Then a separate semantic pass checks the program: types, whether names are declared, the number and types of function arguments, whether fields are mutable, and whether a function returns the right type. Only after that does the code generator build LLVM IR with llvmlite. The checks come first because llvmlite doesn't report a wrong function call properly.
+
+Inside a member function, a name is looked up in this order: parameters and local variables, then the structure’s fields, then global variables.
+
+Each structure becomes an LLVM struct type. Each member function becomes a normal function whose first parameter is a pointer to the object. A field is accessed by its index in the structure, not by its name. A member function that changes a field (directly or through another such function) is “mutating”, so it cannot be called on a constant object. Changing a field through a chain like a.b.c is allowed only if every object along the chain is mutable.
+
+read stores the number from scanf in a temporary variable. print chooses the format by type (%d, %lld, or true/false), for an object it prints every field, and each print ends with one newline. 🪴(...) checks for overflow while the program runs and stops it if one happens.
+
+The test runner compiles each valid program, runs it and compares its output with the expected file. For invalid programs it compares the error message.

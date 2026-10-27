@@ -1,0 +1,8 @@
+struct Cell {
+🪵 🌰 value
+}
+struct Box {
+🌿 Cell cell
+}
+🪵 Box b💧Box{cell: Cell{value: 1}}
+b.cell.value💧2

@@ -1,0 +1,15 @@
+struct Inner {
+🪵 🌰 value
+fn set() -> 🌰 {
+value💧value + 1
+return value
+}
+}
+struct Outer {
+🪵 Inner inner
+fn mutate() -> 🌰 {
+return inner.set()
+}
+}
+🌿 Outer outer💧Outer{inner: Inner{value: 1}}
+print(outer.mutate())

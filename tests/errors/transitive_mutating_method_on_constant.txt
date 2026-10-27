@@ -1,0 +1,12 @@
+struct Counter {
+🪵 🌰 value
+fn increment() -> 🌰 {
+value💧value + 1
+return value
+}
+fn proxy() -> 🌰 {
+return increment()
+}
+}
+🌿 Counter c💧Counter{value: 1}
+c.proxy()

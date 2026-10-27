@@ -1,0 +1,13 @@
+struct Cell {
+🪵 🌰 value
+fn set(value: 🌰) -> 🌰 {
+self.value💧value
+return self.value
+}
+}
+struct Box {
+🪵 Cell cell
+}
+🪵 Box b💧Box{cell: Cell{value: 2}}
+print(b.cell.set(12))
+print(b.cell.value)

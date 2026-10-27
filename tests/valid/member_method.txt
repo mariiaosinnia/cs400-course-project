@@ -1,0 +1,8 @@
+struct Point {
+🪵 🌰 x
+fn double() -> 🌰 {
+return x * 2
+}
+}
+🪵 Point p💧Point{x: 8}
+print(p.double())

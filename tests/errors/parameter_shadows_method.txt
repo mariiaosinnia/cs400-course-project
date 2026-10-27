@@ -1,0 +1,9 @@
+struct Counter {
+🪵 🌰 value
+fn increment() -> 🌰 {
+return 1
+}
+fn call(increment: 🌰) -> 🌰 {
+return increment()
+}
+}

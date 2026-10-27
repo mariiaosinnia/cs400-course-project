@@ -71,6 +71,9 @@ SINGLE_BYTE_TOKENS = {
     ord("}"): "RBRACE",
     ord("("): "LPAREN",
     ord(")"): "RPAREN",
+    ord(":"): "COLON",
+    ord(","): "COMMA",
+    ord("."): "DOT",
 }
 
 
@@ -121,6 +124,15 @@ class Lexer:
                 tokens.append(Token("IDENT", text, start_line, start_column))
                 continue
 
+            if byte == ord("-") and self.source[self.offset:self.offset + 2] == b"->":
+                self.advance(2)
+                tokens.append(Token("ARROW", "->", start_line, start_column))
+                continue
+
+            if byte == ord('"'):
+                tokens.append(self._string_token(start_line, start_column))
+                continue
+
             if byte in SINGLE_BYTE_TOKENS:
                 self.advance()
                 tokens.append(Token(SINGLE_BYTE_TOKENS[byte], chr(byte), start_line, start_column))
@@ -162,6 +174,45 @@ class Lexer:
 
         tokens.append(Token("EOF", "", self.line, self.column))
         return tokens
+
+    def _string_token(self, line: int, column: int) -> Token:
+        self.advance()
+        chars: list[str] = []
+        while self.offset < len(self.source):
+            byte = self.source[self.offset]
+            if byte == ord('"'):
+                self.advance()
+                return Token("STRING", "".join(chars), line, column)
+            if byte in (ord("\n"), ord("\r")):
+                raise CompilerError(line, column, "newline in string literal")
+            if byte == ord("\\"):
+                self.advance()
+                if self.offset >= len(self.source):
+                    break
+                escaped = self.source[self.offset]
+                replacements = {
+                    ord("n"): "\n",
+                    ord("t"): "\t",
+                    ord('"'): '"',
+                    ord("\\"): "\\",
+                }
+                if escaped not in replacements:
+                    raise CompilerError(self.line, self.column, "invalid string escape")
+                chars.append(replacements[escaped])
+                self.advance()
+                continue
+            width = 1 if byte < 0x80 else (
+                2 if byte & 0xE0 == 0xC0 else
+                3 if byte & 0xF0 == 0xE0 else
+                4 if byte & 0xF8 == 0xF0 else 1
+            )
+            try:
+                fragment = self.source[self.offset:self.offset + width].decode("utf-8")
+            except UnicodeDecodeError:
+                raise CompilerError(self.line, self.column, f"invalid UTF-8 byte 0x{byte:02x}")
+            chars.append(fragment)
+            self.advance(width)
+        raise CompilerError(line, column, "unterminated string literal")
 
     @staticmethod
     def _is_identifier_start(byte: int) -> bool:
