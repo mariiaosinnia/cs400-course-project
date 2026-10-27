@@ -1,6 +1,8 @@
 # Sprout
 
-Sprout is a small expression language whose declarations and control-flow keywords use emoji. Stage 1 implements a byte-oriented hand-written lexer, recursive-descent parser, and indented AST dump. It performs syntax analysis only; type checking, constant reassignment checks, and evaluation are deferred to the next stage. The type of an `if` condition is checked in Stage 2.
+Sprout is a small expression language whose declarations and control-flow keywords use emoji. Stage 1 implements a byte-oriented hand-written lexer, recursive-descent parser, and indented AST dump. It validates integer literal ranges in integer declarations and assignments; other type checking, constant reassignment checks, and evaluation are deferred to the next stage. The type of an `if` condition is checked in Stage 2.
+
+The implementation is split across `lexer.py`, `ast_nodes.py`, and `parser.py`; `compiler.py` provides the command-line entry point. `🪴(expr)` marks an overflow-checked expression syntactically; runtime arithmetic overflow behavior is deferred to a later stage.
 
 ## Syntax
 
@@ -52,4 +54,4 @@ On success, the compiler writes a stable, indented AST to stdout. On a lexical o
 python3 run_tests.py
 ```
 
-The runner executes the compiler against each named fixture in `tests/valid/` and `tests/errors/`. Every `tests/valid/name.txt` has a matching `name.expected` AST dump; every `tests/errors/name.txt` has a matching `name.err` diagnostic. Test inputs are read as bytes so malformed UTF-8 is covered too. The suite currently checks 23 valid programs and 32 lexical or syntax errors.
+The runner executes the compiler against each named fixture in `tests/valid/` and `tests/errors/`. Every `tests/valid/name.txt` has a matching `name.expected` AST dump; every `tests/errors/name.txt` has a matching `name.err` diagnostic. Test inputs are read as bytes so malformed UTF-8 is covered too. The suite currently checks 24 valid programs and 35 lexical, syntax, or integer-literal range errors.

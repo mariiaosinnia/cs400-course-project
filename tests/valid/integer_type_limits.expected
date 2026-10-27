@@ -1,0 +1,8 @@
+ProgramNode @1:1
+  statements:
+    VarDeclNode @1:1 storage=mutable type=i32 name=max_i32
+      initializer:
+        NumberNode @1:21 value=2147483647
+    VarDeclNode @2:1 storage=immutable type=i64 name=max_i64
+      initializer:
+        NumberNode @2:21 value=9223372036854775807
