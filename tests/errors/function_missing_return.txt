@@ -1,0 +1,6 @@
+fn incomplete(value: 🌰) -> 🌰 {
+🌤 value ⚖ 0 {
+return value
+}
+}
+print(incomplete(1))

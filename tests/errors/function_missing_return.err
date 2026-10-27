@@ -1,0 +1,1 @@
+compilation error: line 1:1: function 'incomplete' must return i32 on every path

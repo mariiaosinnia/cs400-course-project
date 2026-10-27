@@ -1,0 +1,9 @@
+struct Counter {
+🪵 🌰 value
+fn increment() -> 🌰 {
+value💧value + 1
+return value
+}
+}
+🌿 Counter c💧Counter{value: 1}
+c.increment()

@@ -1,0 +1,4 @@
+print(🍎)
+print("hello")
+print(9223372036854775807)
+print("line\nnext")

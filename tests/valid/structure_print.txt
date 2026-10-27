@@ -1,0 +1,6 @@
+struct Point {
+🪵 🌰 x
+🌿 🌰 y
+}
+🪵 Point p💧Point{x: 4, y: 9}
+print(p)

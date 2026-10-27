@@ -1,0 +1,13 @@
+🪵🌰 score💧3
+struct Player {
+🪵🌰 score
+fn select(score: 🌰) -> 🌰 {
+return score
+}
+fn field_value() -> 🌰 {
+return score
+}
+}
+🪵 Player p💧Player{score: 8}
+print(p.select(11))
+print(p.field_value())

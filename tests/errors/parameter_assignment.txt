@@ -1,0 +1,5 @@
+fn change(value: 🌰) -> 🌰 {
+value💧2
+return value
+}
+print(change(1))

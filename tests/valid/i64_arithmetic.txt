@@ -1,0 +1,5 @@
+fn widen(value: 🌳) -> 🌳 {
+return value + 1
+}
+print(widen(2147483648))
+print(1 + 2147483648)

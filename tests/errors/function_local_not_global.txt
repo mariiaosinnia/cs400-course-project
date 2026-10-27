@@ -1,0 +1,5 @@
+fn get() -> 🌰 {
+return local
+}
+🪵🌰 local💧3
+print(get())

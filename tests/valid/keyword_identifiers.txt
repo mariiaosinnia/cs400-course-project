@@ -1,0 +1,7 @@
+🪵🌰 fn💧1
+🪵🌰 struct💧2
+🪵🌰 return💧3
+🪵🌰 read💧4
+🪵🌰 print💧5
+🪵🌰 string💧6
+print(fn + struct + return + read + print + string)

@@ -1,0 +1,6 @@
+struct Thing {
+🪵 🌰 value
+fn run() -> 🌰 {
+return value()
+}
+}
