@@ -1,0 +1,78 @@
+# ai_usage.txt — SE400 Languages and Compilers Design, 2026
+
+# ====================== HEADER ======================
+
+Student name:           Mariia Osinnia
+Submission:             Project Stage 1 — language design, lexer and parser
+Submission date:        2026-10-06
+
+# ====================== SESSIONS ====================
+
+## Session 1 — Stage 1 compiler implementation
+
+
+AI role:        implementation assistant
+Tool & model:   GitHub Copilot Chat in VS Code; exact model not exposed in this session
+Chat link:      no public link; the prompt is summarized and the supplied syntax is recorded below. link to the gemini chat with sytax creation: https://share.gemini.google/Oag7rDKYdm3Z
+Date & time:    2026-10-06; exact time not recorded
+
+### Goal (1-2 sentences)
+Implement the first stage of the course project using the user's emoji-based language syntax: a hand-written byte lexer, recursive-descent parser, AST, grammar, documentation, and tests. Keep semantic analysis and code generation out of scope for this stage.
+
+### Prompt (final request summarized; original assignment was supplied in chat)
+```
+The user asked to complete Stage 1 using the supplied syntax below and provided the assignment requirements: a complete EBNF, a hand-written lexer over bytes, a recursive-descent parser and positioned AST nodes, the `python3 compiler.py --ast input.txt` CLI, at least 15 valid and 15 invalid tests with expected output, a test runner, README.md, and ai_usage.txt. Follow-up requests added a distinct constant form, a byte trie for emoji tokens, spellings with and without U+FE0F, clearer lexical/parser errors, leading-BOM and malformed-UTF-8 handling, and test-fixture migration. The latest request made 🪡 mandatory between same-line statements, required a dedicated error if placed before `else`, requested visible code-point diagnostics, and asked for more column/BOM/terminator tests and a Stage 2 note about `if` condition types. Semantic checking and code generation remain out of scope for Stage 1.
+
+Program         ::= Stmt+
+Stmt            ::= (VarDecl | Assign | IfStmt) [ "🪡" ]
+VarDecl         ::= Mutability Type Ident "💧" Expr
+Mutability      ::= "🪵" | "🌿" | "🧊"
+Type            ::= "🌰" | "🌳" | "🌸"
+Assign          ::= Ident "💧" Expr
+IfStmt          ::= IfKeyword Expr "{" Stmt+ "}" [ ElseKeyword "{" Stmt+ "}" ]
+IfKeyword       ::= "🌤" | "🌤️"
+ElseKeyword     ::= "🌧" | "🌧️"
+
+Expr            ::= AddExpr [ ComparisonOp AddExpr ]
+ComparisonOp    ::= EqualOp | NotEqualOp
+EqualOp         ::= "⚖" | "⚖️"
+NotEqualOp      ::= "✂" | "✂️"
+AddExpr         ::= Term (("+" | "-") Term)*
+Term            ::= Factor (("*" | "/") Factor)*
+Factor          ::= Number | BoolLit | Ident | OverflowCheck | "(" Expr ")"
+
+OverflowCheck   ::= "🪴" "(" Expr ")"
+BoolLit         ::= "🍎" | "🍏"
+Number          ::= [0-9]+
+Ident           ::= [a-zA-Z_][a-zA-Z0-9_]*
+```
+
+### Verification — how I checked
+- [x] Ran `python3 -m py_compile compiler.py run_tests.py`.
+- [x] Ran `python3 run_tests.py`; final output was `55/55 tests passed` (23 valid cases and 32 error cases).
+- [x] Ran a parser/AST probe covering emoji tokens, arithmetic precedence, an overflow-check expression, and both if/else branches.
+- [x] Checked both variation-selector spellings, a BOM-prefixed input, raw invalid UTF-8 byte `0xff`, digit-suffixed numbers, orphan `else`, and chained comparisons.
+- [x] Compared fixture columns with actual diagnostics and corrected expected positions before the final full-suite run.
+- [x] Manually counted the second-line EOF position as column 15: `🪵` (4 bytes), `🌰` (4), space (1), `b` (1), and `💧` (4).
+
+### What I kept
+- The user's emoji syntax and its intended grammar, with 🪵 mutable, 🌿 immutable, 🧊 const, 🌰 i32, 🌳 i64, 🌸 bool, ⚖ equality, and ✂ inequality. Added optional U+FE0F spellings for 🌤/🌧/⚖/✂ and made 🪡 required between same-line statements.
+- The byte-trie lexer, token source positions, recursive-descent parser, AST class hierarchy, CLI dump, and one-line diagnostics, including visible U+XXXX messages for invisible Unicode characters and dedicated same-line/else-boundary parser errors.
+- The EBNF, README instructions, paired `.txt`/`.expected`/`.err` tests, and runner that reads raw source bytes.
+
+### What I discarded and why
+- I did not add semantic type checking, constant-assignment enforcement, overflow evaluation, or code generation; the assignment places those in a later stage.
+- I discarded five initially guessed fixture columns after the compiler output showed the correct byte positions; only the expected test outputs were changed.
+- I did not create the optional VS Code extension because it carries no points and was not needed for the required compiler stage.
+
+### Outcome (1 sentence)
+The Stage 1 compiler and documentation were updated, and Python syntax compilation plus all 55 paired-fixture tests passed.
+
+# ====================== SELF-ASSESSMENT ======================
+
+## Total sessions logged this submission: 1
+
+## Self-assessment
+The AI produced most of the implementation. I supplied the language syntax and course requirements and asked for the Stage 1 project to be completed with them; I checked the compiler and test results in this chat. I independently inspected and understand the final source, complete the repository and ran tests by myself
+
+# ====================== END ======================

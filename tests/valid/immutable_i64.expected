@@ -1,0 +1,5 @@
+ProgramNode @1:1
+  statements:
+    VarDeclNode @1:1 storage=immutable type=i64 name=total
+      initializer:
+        NumberNode @1:19 value=42

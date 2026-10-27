@@ -1,0 +1,49 @@
+Program         = Stmt, { [Terminator], Stmt }, [Terminator], EOF ;
+Block           = "{", Stmt, { [Terminator], Stmt }, [Terminator], "}" ;
+Stmt            = VarDecl | Assign | IfStmt ;
+VarDecl         = Mutability, Type, Ident, "💧", Expr ;
+Mutability      = "🪵" | "🌿" | "🧊" ;
+Type            = "🌰" | "🌳" | "🌸" ;
+Assign          = Ident, "💧", Expr ;
+IfStmt          = IfKeyword, Expr, Block, [ElseKeyword, Block] ;
+IfKeyword       = "🌤" | "🌤️" ;
+ElseKeyword     = "🌧" | "🌧️" ;
+
+Expr            = AddExpr, [ComparisonOp, AddExpr] ;
+ComparisonOp    = EqualOp | NotEqualOp ;
+EqualOp         = "⚖" | "⚖️" ;
+NotEqualOp      = "✂" | "✂️" ;
+AddExpr         = Term, { ("+" | "-"), Term } ;
+Term            = Factor, { ("*" | "/"), Factor } ;
+Factor          = Number | BoolLit | Ident | OverflowCheck | "(", Expr, ")" ;
+OverflowCheck   = "🪴", "(", Expr, ")" ;
+BoolLit         = "🍎" | "🍏" ;
+Number          = Digit, { Digit } ;
+Digit           = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+Ident           = LetterOrUnderscore, { LetterOrUnderscore | Digit } ;
+LetterOrUnderscore = LowercaseLetter | UppercaseLetter | "_" ;
+LowercaseLetter = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+                | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r"
+                | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
+UppercaseLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I"
+                | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R"
+                | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+Terminator      = "🪡" ;
+EOF             = end of input ;
+
+(* Layout rule: line feeds are whitespace. If a Stmt starts on the same
+   line where the previous Stmt ended, "🪡" must stand between them.
+   "🪡" is not allowed between the closing "}" of an if-block and
+   ElseKeyword (it is a separator, and ElseKeyword does not start a Stmt).
+
+   There are no comments. Emoji terminals are exact UTF-8 byte sequences.
+   A leading UTF-8 BOM is ignored. Parentheses only group expressions and do
+   not add an AST node. The parser accepts one optional comparison per Expr.
+   Arithmetic operators are left-associative; * and / bind more tightly than
+   + and -.
+
+   OverflowCheck is represented in the AST but has no runtime behavior in
+   Stage 1. Integer literals in declarations and assignments are checked
+   against the declared integer type's maximum value. Arithmetic overflow
+   behavior is deferred to a later stage.
+*)

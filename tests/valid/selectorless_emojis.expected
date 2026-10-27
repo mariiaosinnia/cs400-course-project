@@ -1,0 +1,17 @@
+ProgramNode @1:1
+  statements:
+    IfNode @1:1 has_else=true
+      condition:
+        BinaryExprNode @1:7 operator=⚖
+          left:
+            IdentifierNode @1:6 name=x
+          right:
+            NumberNode @1:10 value=7
+      then:
+        AssignNode @1:14 name=x
+          value:
+            NumberNode @1:19 value=1
+      else:
+        AssignNode @1:30 name=x
+          value:
+            NumberNode @1:35 value=2

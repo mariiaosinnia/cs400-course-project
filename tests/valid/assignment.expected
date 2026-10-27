@@ -1,0 +1,5 @@
+ProgramNode @1:1
+  statements:
+    AssignNode @1:1 name=count
+      value:
+        NumberNode @1:10 value=7

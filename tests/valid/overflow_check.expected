@@ -1,0 +1,7 @@
+ProgramNode @1:1
+  statements:
+    VarDeclNode @1:1 storage=mutable type=i32 name=checked
+      initializer:
+        OverflowCheckNode @1:21
+          expression:
+            NumberNode @1:26 value=1

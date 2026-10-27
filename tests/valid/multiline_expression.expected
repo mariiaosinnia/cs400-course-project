@@ -1,0 +1,9 @@
+ProgramNode @1:1
+  statements:
+    VarDeclNode @1:1 storage=mutable type=i32 name=x
+      initializer:
+        BinaryExprNode @2:1 operator=+
+          left:
+            NumberNode @1:15 value=1
+          right:
+            NumberNode @2:3 value=2
