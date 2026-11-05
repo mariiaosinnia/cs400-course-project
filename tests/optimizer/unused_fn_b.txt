@@ -1,0 +1,7 @@
+fn first() -> 🌰 {
+return 8
+}
+fn second() -> 🌰 {
+return first()
+}
+print(5)

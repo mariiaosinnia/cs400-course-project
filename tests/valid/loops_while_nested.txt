@@ -1,0 +1,9 @@
+🪵🌰 outer💧2
+while outer {
+🪵🌰 inner💧2
+while inner {
+print(inner)
+inner💧inner-1
+}
+outer💧outer-1
+}

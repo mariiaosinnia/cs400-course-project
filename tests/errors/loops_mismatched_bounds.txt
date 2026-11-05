@@ -1,0 +1,4 @@
+🪵🌳 high💧1
+for i in 1..high {
+print(i)
+}

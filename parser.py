@@ -4,9 +4,9 @@ from typing import Optional, Sequence
 
 from ast_nodes import (
     AssignNode, BinaryExprNode, BoolNode, CallNode, ExprNode, ExprStmtNode,
-    FieldAccessNode, FieldDeclNode, FunctionDeclNode, IdentifierNode, IfNode,
+    FieldAccessNode, FieldDeclNode, ForNode, FunctionDeclNode, IdentifierNode, IfNode,
     MemberCallNode, NumberNode, ObjectLiteralNode, OverflowCheckNode, ProgramNode,
-    ReturnNode, StmtNode, StringNode, StructDeclNode, VarDeclNode,
+    ReturnNode, StmtNode, StringNode, StructDeclNode, VarDeclNode, WhileNode,
 )
 from lexer import CompilerError, Lexer, Token
 
@@ -68,6 +68,10 @@ class Parser:
             statement = self.parse_var_decl()
         elif kind == "IF":
             statement = self.parse_if()
+        elif kind == "IDENT" and self.peek().text == "while" and self._next_kind() != "ASSIGN":
+            statement = self.parse_while()
+        elif kind == "IDENT" and self.peek().text == "for":
+            statement = self.parse_for()
         elif self._is_function_decl_start():
             statement = self.parse_function()
         elif self._is_struct_decl_start():
@@ -205,6 +209,29 @@ class Parser:
             self.eat("LBRACE", "expected '{' after 🌧️")
             else_body = self.parse_block()
         return IfNode(token, condition, then_body, else_body)
+
+    def parse_while(self) -> WhileNode:
+        token = self.eat("IDENT")
+        condition = self.parse_expr()
+        self.eat("LBRACE", "expected '{' after the while condition")
+        return WhileNode(token, condition, self.parse_block())
+
+    def parse_for(self) -> ForNode:
+        token = self.eat("IDENT")
+        name = self.eat("IDENT", "expected a loop variable after 'for'")
+        word = self.eat("IDENT", "expected 'in' after the loop variable")
+        if word.text != "in":
+            self.error(word, "expected 'in' after the loop variable")
+        start = self.parse_expr()
+        self.eat("RANGE", "expected '..' between loop bounds")
+        end = self.parse_expr()
+        self.eat("LBRACE", "expected '{' after the for bounds")
+        self.type_scopes.append({name.text: "i32"})
+        try:
+            body = self.parse_block()
+        finally:
+            self.type_scopes.pop()
+        return ForNode(token, name.text, start, end, body)
 
     def parse_block(self) -> list[StmtNode]:
         if self.peek().kind == "RBRACE":

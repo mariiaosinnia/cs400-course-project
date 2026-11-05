@@ -128,6 +128,10 @@ class Lexer:
                 self.advance(2)
                 tokens.append(Token("ARROW", "->", start_line, start_column))
                 continue
+            if self.source[self.offset:self.offset + 2] == b"..":
+                self.advance(2)
+                tokens.append(Token("RANGE", "..", start_line, start_column))
+                continue
 
             if byte == ord('"'):
                 tokens.append(self._string_token(start_line, start_column))

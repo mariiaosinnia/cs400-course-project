@@ -98,6 +98,31 @@ class IfNode(StmtNode):
         return groups
 
 
+class WhileNode(StmtNode):
+    def __init__(self, token: Token, condition: ExprNode, body: list[StmtNode]) -> None:
+        super().__init__(token)
+        self.condition, self.body = condition, body
+
+    def description(self) -> str:
+        return f"WhileNode @{self.line}:{self.column}"
+
+    def child_groups(self) -> Sequence[tuple[str, Sequence[ASTNode]]]:
+        return (("condition", (self.condition,)), ("body", self.body))
+
+
+class ForNode(StmtNode):
+    def __init__(self, token: Token, name: str, start: ExprNode, end: ExprNode,
+                 body: list[StmtNode]) -> None:
+        super().__init__(token)
+        self.name, self.start, self.end, self.body = name, start, end, body
+
+    def description(self) -> str:
+        return f"ForNode @{self.line}:{self.column} name={self.name}"
+
+    def child_groups(self) -> Sequence[tuple[str, Sequence[ASTNode]]]:
+        return (("start", (self.start,)), ("end", (self.end,)), ("body", self.body))
+
+
 class BinaryExprNode(ExprNode):
     def __init__(self, token: Token, left: ExprNode, operator: str, right: ExprNode) -> None:
         super().__init__(token)

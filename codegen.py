@@ -7,9 +7,9 @@ from llvmlite import binding
 
 from ast_nodes import (
     AssignNode, BinaryExprNode, BoolNode, CallNode, ExprNode, ExprStmtNode,
-    FieldAccessNode, FunctionDeclNode, IdentifierNode, IfNode, MemberCallNode,
+    FieldAccessNode, ForNode, FunctionDeclNode, IdentifierNode, IfNode, MemberCallNode,
     NumberNode, ObjectLiteralNode, OverflowCheckNode, ProgramNode, ReturnNode,
-    StmtNode, StringNode, StructDeclNode, VarDeclNode,
+    StmtNode, StringNode, StructDeclNode, VarDeclNode, WhileNode,
 )
 from semantic import SemanticAnalyzer
 
@@ -167,6 +167,42 @@ class CodeGenerator:
                 if not self.builder.block.is_terminated:
                     self.builder.branch(merge_block)
             self.builder.position_at_end(merge_block)
+        elif isinstance(statement, WhileNode):
+            condition_block = self.builder.function.append_basic_block("while.condition")
+            body_block = self.builder.function.append_basic_block("while.body")
+            end_block = self.builder.function.append_basic_block("while.end")
+            self.builder.branch(condition_block)
+            self.builder.position_at_end(condition_block)
+            condition = self._emit_expr(statement.condition)
+            zero = ir.Constant(condition.type, 0)
+            condition = self.builder.icmp_signed("!=", condition, zero)
+            self.builder.cbranch(condition, body_block, end_block)
+            self.builder.position_at_end(body_block)
+            self._emit_scoped_block(statement.body)
+            if not self.builder.block.is_terminated:
+                self.builder.branch(condition_block)
+            self.builder.position_at_end(end_block)
+        elif isinstance(statement, ForNode):
+            start = self._emit_expr(statement.start)
+            end = self._emit_expr(statement.end, statement.start and self.analysis.expression_types.get(id(statement.start)))
+            slot = self.builder.alloca(start.type, name=f"{statement.name}.addr")
+            self.builder.store(start, slot)
+            self.scopes.append({statement.name: (slot, self.analysis.expression_types.get(id(statement.start), "i32"))})
+            condition_block = self.builder.function.append_basic_block("for.condition")
+            body_block = self.builder.function.append_basic_block("for.body")
+            end_block = self.builder.function.append_basic_block("for.end")
+            self.builder.branch(condition_block)
+            self.builder.position_at_end(condition_block)
+            current = self.builder.load(slot)
+            self.builder.cbranch(self.builder.icmp_signed("<", current, end), body_block, end_block)
+            self.builder.position_at_end(body_block)
+            self._emit_scoped_block(statement.body)
+            if not self.builder.block.is_terminated:
+                current = self.builder.load(slot)
+                self.builder.store(self.builder.add(current, ir.Constant(current.type, 1)), slot)
+                self.builder.branch(condition_block)
+            self.builder.position_at_end(end_block)
+            self.scopes.pop()
         elif isinstance(statement, ReturnNode):
             self.builder.ret(self._emit_expr(statement.value))
         elif isinstance(statement, ExprStmtNode):

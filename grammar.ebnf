@@ -1,13 +1,15 @@
 Program         = TopLevel, { TopLevel }, EOF ;
 TopLevel        = Stmt | FunctionDecl | StructDecl ;
 
-Stmt            = VarDecl | Assign | IfStmt | ReturnStmt | PrintStmt ;
+Stmt            = VarDecl | Assign | IfStmt | WhileStmt | ForStmt | ReturnStmt | PrintStmt ;
 Block           = "{", Stmt, { [Terminator], Stmt }, [Terminator], "}" ;
 VarDecl         = Mutability, Type, Ident, "💧", Expr ;
 Mutability      = "🪵" | "🌿" | "🧊" ;
 Assign          = LValue, "💧", Expr ;
 LValue          = Ident, { ".", Ident } ;
 IfStmt          = IfKeyword, Expr, Block, [ElseKeyword, Block] ;
+WhileStmt       = "while", Expr, Block ;
+ForStmt         = "for", Ident, "in", Expr, "..", Expr, Block ;
 IfKeyword       = "🌤" | "🌤️" ;
 ElseKeyword     = "🌧" | "🌧️" ;
 ReturnStmt      = "return", Expr ;
@@ -75,6 +77,8 @@ EOF             = end of input ;
    An object initializer names every field exactly once. Field/method postfixes
    associate left-to-right, so obj.center.x and obj.move().x are chains.
    print is a statement-form built-in; read() is an i32 expression. An object
-   type is an identifier naming a declared structure. 🪴 marks runtime-checked
+   type is an identifier naming a declared structure.    `while` treats a non-zero i32/i64 as true. `for i in start..end` is an
+   integer half-open range (start inclusive, end exclusive); its loop variable
+   is immutable and scoped to the loop body. 🪴 marks runtime-checked
    integer arithmetic and traps on signed overflow or invalid division.
 *)

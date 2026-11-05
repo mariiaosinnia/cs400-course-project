@@ -22,6 +22,8 @@ validates the AST before `codegen.py` uses `llvmlite.ir` to build the module.
 | `Name{field: value}` | initialize every structure field by name |
 | `object.field`, `object.method(args)` | field or member access/call |
 | `read()` / `print(expr)` | integer input / output |
+| `while n { ... }` | repeat while an integer is non-zero |
+| `for i in start..end { ... }` | half-open integer range loop |
 
 Functions, including forward references and recursion:
 
@@ -52,6 +54,31 @@ Input and output:
 🪵🌰 count💧read()
 print(count)
 print("done")
+```
+
+Stage 3 loops use ordinary ASCII contextual words. `while` accepts an `i32` or
+`i64` condition. A `for` loop counts from its inclusive start to its exclusive
+end; its immutable index is scoped to the body.
+
+Loop example 1, a countdown:
+
+```text
+🪵🌰 n💧read()
+while n {
+print(n)
+n💧n-1
+}
+```
+
+Loop example 2, a sum inside a function:
+
+```text
+fn sum(limit: 🌰) -> 🌰 {
+🪵🌰 result💧0
+for i in 0..limit { result💧result+i }
+return result
+}
+print(sum(4))
 ```
 
 The full EBNF, including lexical and layout rules, is in
@@ -146,6 +173,7 @@ Python 3.10+, `llvmlite`, LLVM `llc`, and `clang` are required:
 python3 -m pip install -r requirements.txt
 python3 compiler.py --ast input.txt
 python3 compiler.py input.txt output.ll
+python3 compiler.py --optimize input.txt optimized.ll
 llc -filetype=obj output.ll -o output.o
 clang -no-pie output.o -o program
 ./program
@@ -164,6 +192,7 @@ Run the complete front-end and end-to-end suite with:
 
 ```sh
 python3 run_tests.py
+python3 run_tests.py --optimize
 ```
 
 The runner preserves Stage 1 AST snapshots, checks every `.err` diagnostic,
@@ -173,3 +202,89 @@ with a `.out` file; `.trap` cases assert an expected runtime trap. A neighboring
 End-to-end tests cover functions (including forward calls and recursion),
 structures and member functions, nested fields, checked arithmetic, scalar and
 object output, and input.
+
+## Stage 3 design and optimizer
+
+`while condition { ... }` repeats while an integer condition is non-zero.
+`for i in start..end { ... }` evaluates integer bounds once and visits the
+half-open range `[start, end)`; `i` is immutable and scoped to the loop body.
+Blocks may contain nested loops, declarations, assignments, calls, and
+structures. A loop condition of the wrong type and mismatched bound types are
+compile-time errors. These rules are demonstrated in
+`tests/valid/stage3_loops.txt`.
+
+With `--optimize`, the compiler repeats a conservative tree pass until stable:
+unused pure declarations are removed, unused functions are removed, and a
+non-recursive function with exactly one call and one direct `return` expression
+is inlined. Calls, `read`, member calls, and overflow checks are never treated
+as dead pure initializers. Functions with branches, multiple exits, recursion,
+or more than one call are left alone. For a direct call in a declaration or
+`print`, each parameter becomes a fresh immutable local declaration initialized
+with the argument; references in the copied return expression use those fresh
+names. Calls nested in arbitrary expressions are left alone, and recursive
+functions are never inlined.
+
+The loop lowering produces ordinary basic-block back edges. A representative
+excerpt from the builder-generated IR is:
+
+```llvm
+br label %"while.condition"
+while.condition:
+  %".3" = load i32, i32* %"n.addr"
+  %".4" = icmp ne i32 %".3", 0
+  br i1 %".4", label %"while.body", label %"while.end"
+while.body:
+  %".5" = sub i32 %".3", 1
+  store i32 %".5", i32* %"n.addr"
+  br label %"while.condition"
+while.end:
+```
+
+The condition block branches to the body or exit. The final branch is the
+back edge; `for` uses the same shape with an induction-variable increment.
+The body loads and updates the loop variable, while the exit block continues
+with the statements after the loop.
+
+For inlining, the builder emits the same operations before and after the
+transformation; only the call boundary changes. Before:
+
+```llvm
+%".4" = call i32 @"sprout_fn_inc"(i32 4)
+```
+
+After:
+
+```llvm
+%"__inline_1_value.addr" = alloca i32
+store i32 4, i32* %"__inline_1_value.addr"
+%".4" = load i32, i32* %"__inline_1_value.addr"
+%".5" = add i32 %".4", 1
+```
+
+The temporary local preserves the parameter's declared type. The copied
+return expression then replaces the call result without evaluating an
+effectful argument twice.
+
+The real program is `programs/countdown.txt`: it prompts for a number, reads
+it, constructs a `Counter`, calls its member function, calls the top-level
+`decrement` function, and visibly uses a `while` loop to print a countdown.
+Build and run it with:
+
+```sh
+python3 compiler.py programs/countdown.txt countdown.ll
+llc -filetype=obj countdown.ll -o countdown.o
+clang -no-pie countdown.o -o countdown
+./countdown < programs/countdown.in
+./countdown < programs/countdown_second.in
+```
+
+The exact outputs for those two sessions are in
+`programs/countdown.expected` and `programs/countdown_second.expected`.
+Session 1 uses input `3` and prints `3`, `2`, `1`; session 2 uses input `5`
+and prints `5`, `4`, `3`, `2`, `1`. Both sessions include the prompt
+`Enter a starting number:` and are run by the test script.
+
+The optimizer proof fixtures are in `tests/optimizer/`: two unused-variable
+cases, two unused-function cases, and two single-call inlining cases. Their
+`.expected` files are optimized AST snapshots and their `.out` files are
+native-program outputs; the test runner includes them in both modes.

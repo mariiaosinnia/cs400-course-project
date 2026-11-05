@@ -1,0 +1,4 @@
+fn dead() -> 🌰 {
+return 9
+}
+print(4)

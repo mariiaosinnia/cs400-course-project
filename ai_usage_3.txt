@@ -1,0 +1,71 @@
+Tools used: GitHub Copilot (AI assistant using Copilot SDK in VS Code) and the
+repository's PowerShell, git, and file-editing tools.
+
+Prompts sent:
+1. The Stage 3 assignment specification in the user message, including the
+   required feature, optimizer, real program, tests, README, and disclosure.
+2. "Implement a complete practical Stage 3 in this repository. Choose integer
+   while/for loops as the feature. Add AST/parser/semantic/codegen support,
+   optimizer with unused variables/functions and safe simple inlining behind
+   --optimize, update grammar/README, add ai_usage_3.txt, tests including a
+   real interactive program under programs/ and test runner support. Preserve
+   Stage 2 behavior. Run targeted tests if possible."
+3. "Please wrap up the implementation now, run any available checks, and
+   report status even if environment limits testing."
+4. The follow-up request to inspect the environment, run baseline and optimized
+   suites, audit Stage 3 requirements, and find optimizer miscompilations.
+5. The follow-up request to continue implementing fixes until the task was
+   complete.
+
+Task 1: I took the existing lexer, AST, recursive-descent parser, semantic
+analyzer, and llvmlite builder structure as-is. I changed them to recognize
+contextual `while` and `for ... in ... .. ...`, added loop nodes and checks,
+and lowered both loops to LLVM basic blocks with a back edge. I added grammar,
+README rules, valid/invalid loop fixtures, and a nested-loop example.
+
+Task 2: I took the existing tree representation and function model as-is. I
+added optimizer.py and the `--optimize` compiler path. The pass is deliberately
+conservative: it removes pure unused declarations and unused non-member
+functions, and inlines only a non-recursive function with exactly one call and
+a single direct return expression. I changed the runner so the optimized mode
+can be exercised. I also corrected the call-count rule and made `--optimize
+--ast` print the optimized tree.
+
+Task 3: I took the existing read/print LLVM support as-is. I added
+programs/countdown.txt, two input sessions, exact expected outputs, and runner
+support for session-specific `.expected` files. The program prompts, reads an
+integer, constructs a Counter structure, calls its member function, calls the
+top-level decrement function, and uses a while loop to print a countdown.
+
+Follow-up fixes: inspection found that the first optimizer could remove a
+declaration while leaving a later assignment, duplicate effectful call
+arguments during inlining, and only process a single pass. I replaced it with
+a conservative recursive pass that repeats to stability, preserves effectful
+initializers and assignments, only inlines pure arguments, and added six
+optimizer fixtures. I also added the missing structure/member-function and
+top-level-function use to the real program, and fixed the runner so program
+`.expected` files are not mistaken for AST snapshots.
+
+What I understood: the parser constructs typed tree nodes before semantic
+analysis, and the analyzer records expression types that codegen uses to choose
+LLVM types. A loop must create a condition block, body block, and exit block;
+the body branches back to the condition. The optimizer must preserve effects,
+so calls and read operations cannot be discarded just because their result is
+unused. The LLVM module is built through llvmlite; output is then assembled
+with llc and linked with clang rather than run with lli.
+
+Validation performed on 5 November 2026:
+
+* `python3 run_tests.py` and `python3 run_tests.py --optimize` were attempted
+  first, but the Windows Python shim was unavailable at that point.
+* Python 3.12 and llvmlite 0.50.0 were then installed. Running the test runner
+  with that interpreter still stopped at `import resource`, because `resource`
+  is unavailable on Windows.
+* WSL2 was checked and is not installed. `llc` and `clang` were also checked
+  and are unavailable on Windows.
+* Python syntax compilation passed. All 64 error fixtures matched exactly in a
+  direct UTF-8 diagnostic check. The six optimizer AST fixtures passed. LLVM
+  IR generation succeeded for the countdown and loop fixtures, including with
+  `--optimize`.
+* Native execution and the complete `run_tests.py` suites therefore remain
+  unverified until the repository is run inside WSL2 Ubuntu.

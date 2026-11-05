@@ -5,9 +5,9 @@ from typing import Optional
 
 from ast_nodes import (
     AssignNode, BinaryExprNode, BoolNode, CallNode, ExprNode, ExprStmtNode,
-    FieldAccessNode, FieldDeclNode, FunctionDeclNode, IdentifierNode, IfNode,
+    FieldAccessNode, FieldDeclNode, ForNode, FunctionDeclNode, IdentifierNode, IfNode,
     MemberCallNode, NumberNode, ObjectLiteralNode, OverflowCheckNode, ProgramNode,
-    ReturnNode, StmtNode, StringNode, StructDeclNode, VarDeclNode,
+    ReturnNode, StmtNode, StringNode, StructDeclNode, VarDeclNode, WhileNode,
 )
 from lexer import CompilerError, Token
 
@@ -225,6 +225,17 @@ class SemanticAnalyzer:
                         and block_writes(statement.else_body, locals_in_scope))
                 ):
                     return True
+                if isinstance(statement, WhileNode) and (
+                    expression_has_effect(statement.condition, locals_in_scope)
+                    or block_writes(statement.body, locals_in_scope)
+                ):
+                    return True
+                if isinstance(statement, ForNode) and (
+                    expression_has_effect(statement.start, locals_in_scope)
+                    or expression_has_effect(statement.end, locals_in_scope)
+                    or block_writes(statement.body, locals_in_scope | {statement.name})
+                ):
+                    return True
             return False
 
         parameter_names = {name for name, _, _ in function.parameters}
@@ -295,6 +306,17 @@ class SemanticAnalyzer:
                         or block_calls(statement.then_body, locals_in_scope)
                         or (statement.else_body is not None
                             and block_calls(statement.else_body, locals_in_scope))
+                    )
+                elif isinstance(statement, WhileNode):
+                    has_effect = (
+                        expression_calls(statement.condition, locals_in_scope)
+                        or block_calls(statement.body, locals_in_scope)
+                    )
+                elif isinstance(statement, ForNode):
+                    has_effect = (
+                        expression_calls(statement.start, locals_in_scope)
+                        or expression_calls(statement.end, locals_in_scope)
+                        or block_calls(statement.body, locals_in_scope | {statement.name})
                     )
                 else:
                     has_effect = False
@@ -384,6 +406,24 @@ class SemanticAnalyzer:
             self._check_scoped_block(statement.then_body)
             if statement.else_body is not None:
                 self._check_scoped_block(statement.else_body)
+        elif isinstance(statement, WhileNode):
+            condition_type = self._check_expr(statement.condition)
+            if condition_type not in ("i32", "i64"):
+                self.fail(statement.condition, "while condition must be an integer")
+            self._check_scoped_block(statement.body)
+        elif isinstance(statement, ForNode):
+            start_type = self._check_expr(statement.start)
+            end_type = self._check_expr(statement.end)
+            if start_type not in ("i32", "i64") or end_type not in ("i32", "i64") \
+                    or end_type != start_type:
+                self.fail(statement, "for bounds must have the same integer type")
+            self.scopes.append({statement.name: VariableInfo(
+                start_type, False, Token("IDENT", statement.name, statement.line, statement.column))})
+            try:
+                for child in statement.body:
+                    self._check_statement(child)
+            finally:
+                self.scopes.pop()
         elif isinstance(statement, ReturnNode):
             if self.current_function is None:
                 self.fail(statement, "return is only valid inside a function")

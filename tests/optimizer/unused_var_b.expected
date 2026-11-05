@@ -1,0 +1,7 @@
+ProgramNode @1:1
+  statements:
+    ExprStmtNode @3:1
+      expression:
+        CallNode @3:6 callee=print arguments=1
+          arguments:
+            NumberNode @3:7 value=3

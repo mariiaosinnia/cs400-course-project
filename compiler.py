@@ -10,6 +10,8 @@ from semantic import analyze
 
 
 def main(arguments: Sequence[str]) -> int:
+    optimize = "--optimize" in arguments
+    arguments = [a for a in arguments if a != "--optimize"]
     if len(arguments) == 2 and arguments[0] == "--ast":
         ast_mode = True
         input_path = arguments[1]
@@ -30,11 +32,15 @@ def main(arguments: Sequence[str]) -> int:
     except OSError as error:
         print(f"compilation error: line 1:1: {error.strerror or 'could not read input file'}", file=sys.stderr)
         return 1
-    if ast_mode:
-        print("\n".join(program.format_tree()))
-        return 0
     try:
         analysis = analyze(program)
+        if optimize:
+            from optimizer import optimize as optimize_program
+            program = optimize_program(program)
+            analysis = analyze(program)
+        if ast_mode:
+            print("\n".join(program.format_tree()))
+            return 0
         from codegen import generate_ir
         ir_text = generate_ir(program, analysis)
         Path(output_path).write_text(ir_text, encoding="utf-8")

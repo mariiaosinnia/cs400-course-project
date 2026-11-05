@@ -1,0 +1,12 @@
+fn total(limit: 🌰) -> 🌰 {
+🪵🌰 result💧0
+for i in 0..limit {
+result💧result+i
+}
+🪵🌰 left💧limit
+while left {
+left💧left-1
+}
+return result
+}
+print(total(4))

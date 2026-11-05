@@ -7,9 +7,12 @@ import subprocess
 import sys
 import tempfile
 import resource
+import os
 
 ROOT = Path(__file__).resolve().parent
 COMPILER = ROOT / "compiler.py"
+OPTIMIZE = "--optimize" in os.sys.argv
+COMPILER_FLAGS = ["--optimize"] if OPTIMIZE else []
 
 
 def describe_failure(name: str, phase: str, result: subprocess.CompletedProcess[bytes]) -> str:
@@ -18,26 +21,28 @@ def describe_failure(name: str, phase: str, result: subprocess.CompletedProcess[
             f"  stderr: {result.stderr.decode('utf-8', errors='replace')!r}")
 
 
-def check_valid(path: Path, work: Path) -> list[str]:
+def check_valid(path: Path, work: Path, input_path: Path | None = None,
+                expected_override: Path | None = None,
+                check_ast: bool = True) -> list[str]:
     failures: list[str] = []
     expected_ast = path.with_suffix(".expected")
-    if expected_ast.is_file():
+    if check_ast and expected_ast.is_file():
         ast_result = subprocess.run(
-            [sys.executable, str(COMPILER), "--ast", str(path)],
+            [sys.executable, str(COMPILER), *COMPILER_FLAGS, "--ast", str(path)],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         actual_ast = ast_result.stdout.rstrip(b"\n")
         if ast_result.returncode != 0 or ast_result.stderr or actual_ast != expected_ast.read_bytes().rstrip(b"\n"):
             failures.append(describe_failure(path.name, "AST", ast_result))
 
-    expected_output_path = path.with_suffix(".out")
+    expected_output_path = expected_override or path.with_suffix(".out")
     trap_path = path.with_suffix(".trap")
     if not expected_output_path.is_file() and not trap_path.is_file():
         return failures
 
     ir_path = work / f"{path.stem}.ll"
     compile_result = subprocess.run(
-        [sys.executable, str(COMPILER), str(path), str(ir_path)],
+        [sys.executable, str(COMPILER), *COMPILER_FLAGS, str(path), str(ir_path)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     if compile_result.returncode != 0 or compile_result.stderr or not ir_path.is_file():
@@ -55,8 +60,8 @@ def check_valid(path: Path, work: Path) -> list[str]:
             failures.append(describe_failure(path.name, phase, result))
             return failures
 
-    input_path = path.with_suffix(".in")
-    program_input = input_path.read_bytes() if input_path.is_file() else b""
+    session_input = input_path or path.with_suffix(".in")
+    program_input = session_input.read_bytes() if session_input.is_file() else b""
     try:
         run_result = subprocess.run(
             [str(binary_path)], input=program_input, stdout=subprocess.PIPE,
@@ -95,7 +100,7 @@ def check_invalid(path: Path) -> list[str]:
     with tempfile.TemporaryDirectory(prefix="sprout-invalid-") as directory:
         ir_path = Path(directory) / "output.ll"
         result = subprocess.run(
-            [sys.executable, str(COMPILER), str(path), str(ir_path)],
+            [sys.executable, str(COMPILER), *COMPILER_FLAGS, str(path), str(ir_path)],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         output_exists = ir_path.exists()
@@ -119,6 +124,8 @@ def main() -> int:
         return 1
     valid = sorted((ROOT / "tests" / "valid").glob("*.txt"))
     errors = sorted((ROOT / "tests" / "errors").glob("*.txt"))
+    programs = sorted((ROOT / "programs").glob("*.txt"))
+    optimizer_tests = sorted((ROOT / "tests" / "optimizer").glob("*.txt"))
     end_to_end = sum(path.with_suffix(".out").is_file() for path in valid)
     if len(valid) < 20 or len(errors) < 20 or end_to_end < 10:
         print(f"FAIL: expected at least 20 valid, 20 invalid, and 10 end-to-end "
@@ -142,8 +149,31 @@ def main() -> int:
                 print(f"FAIL: {path.relative_to(ROOT)}")
             else:
                 print(f"PASS: {path.relative_to(ROOT)}")
-    passed = len(valid) + len(errors) - len(failures)
-    print(f"{passed}/{len(valid) + len(errors)} tests passed "
+        for path in programs:
+            sessions = sorted(path.parent.glob(f"{path.stem}*.in"))
+            if not sessions:
+                sessions = [path.with_suffix(".in")]
+            for session in sessions:
+                expected = session.with_suffix(".expected")
+                if not expected.is_file():
+                    expected = session.with_suffix(".out")
+                case_failures = check_valid(path, work, session, expected, check_ast=False)
+                label = f"{path.relative_to(ROOT)} [{session.name}]"
+                if case_failures:
+                    failures.extend(case_failures)
+                    print(f"FAIL: {label}")
+                else:
+                    print(f"PASS: {label}")
+        for path in optimizer_tests:
+            case_failures = check_valid(path, work)
+            if case_failures:
+                failures.extend(case_failures)
+                print(f"FAIL: {path.relative_to(ROOT)}")
+            else:
+                print(f"PASS: {path.relative_to(ROOT)}")
+    total = len(valid) + len(errors) + len(programs) + len(optimizer_tests)
+    passed = total - len(failures)
+    print(f"{passed}/{total} tests passed "
           f"({end_to_end} end-to-end valid programs)")
     for failure in failures:
         print(failure)

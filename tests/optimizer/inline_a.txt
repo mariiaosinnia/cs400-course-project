@@ -1,0 +1,4 @@
+fn inc(value: 🌰) -> 🌰 {
+return value + 1
+}
+print(inc(4))

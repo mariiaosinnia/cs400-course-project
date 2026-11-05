@@ -1,0 +1,6 @@
+🪵🌰 count💧2
+while count {
+🪵🌰 copy💧count
+print(copy)
+count💧count-1
+}
