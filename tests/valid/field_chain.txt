@@ -1,0 +1,8 @@
+struct Position {
+🪵 🌰 x
+}
+struct Point {
+🪵 Position center
+}
+🪵 Point p💧Point{center: Position{x: 17}}
+print(p.center.x)

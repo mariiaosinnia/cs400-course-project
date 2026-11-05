@@ -1,0 +1,16 @@
+fn decrement(value: 🌰) -> 🌰 {
+return value - 1
+}
+struct Counter {
+🪵 🌰 value
+fn current() -> 🌰 {
+return value
+}
+}
+print("Enter a starting number:")
+🪵🌰 start💧read()
+🪵 Counter counter💧Counter{value: start}
+while counter.current() {
+print(counter.current())
+counter.value💧decrement(counter.value)
+}

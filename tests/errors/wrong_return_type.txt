@@ -1,0 +1,4 @@
+fn bad() -> 🌰 {
+return 🍎
+}
+print(bad())

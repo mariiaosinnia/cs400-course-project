@@ -1,0 +1,10 @@
+struct Thing {
+🌿 🌰 value
+fn read_value() -> 🌰 {
+🪵🌰 value💧6
+value💧7
+return value
+}
+}
+🌿 Thing thing💧Thing{value: 1}
+print(thing.read_value())

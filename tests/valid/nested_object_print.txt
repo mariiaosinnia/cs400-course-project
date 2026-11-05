@@ -1,0 +1,14 @@
+struct Inner {
+🪵 🌸 ready
+}
+struct Report {
+🪵 🌳 id
+🪵 Inner inner
+🪵 string label
+}
+🪵 Report report💧Report{
+id: 2147483648,
+inner: Inner{ready: 🍎},
+label: "done"
+}
+print(report)

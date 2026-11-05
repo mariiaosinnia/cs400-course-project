@@ -1,0 +1,8 @@
+🪵🌰 count💧1
+count💧count + 2
+🌤 count⚖3 {
+count💧count * 2
+} 🌧 {
+count💧0
+}
+print(count)

@@ -1,0 +1,13 @@
+struct Counter {
+🪵 🌰 value
+fn increment() -> 🌰 {
+value💧value + 1
+return value
+}
+fn twice() -> 🌰 {
+return increment() + increment()
+}
+}
+🪵 Counter counter💧Counter{value: 0}
+print(counter.twice())
+print(counter.value)

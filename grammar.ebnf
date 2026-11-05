@@ -1,13 +1,28 @@
-Program         = Stmt, { [Terminator], Stmt }, [Terminator], EOF ;
+Program         = TopLevel, { TopLevel }, EOF ;
+TopLevel        = Stmt | FunctionDecl | StructDecl ;
+
+Stmt            = VarDecl | Assign | IfStmt | WhileStmt | ForStmt | ReturnStmt | PrintStmt ;
 Block           = "{", Stmt, { [Terminator], Stmt }, [Terminator], "}" ;
-Stmt            = VarDecl | Assign | IfStmt ;
 VarDecl         = Mutability, Type, Ident, "💧", Expr ;
 Mutability      = "🪵" | "🌿" | "🧊" ;
-Type            = "🌰" | "🌳" | "🌸" ;
-Assign          = Ident, "💧", Expr ;
+Assign          = LValue, "💧", Expr ;
+LValue          = Ident, { ".", Ident } ;
 IfStmt          = IfKeyword, Expr, Block, [ElseKeyword, Block] ;
+WhileStmt       = "while", Expr, Block ;
+ForStmt         = "for", Ident, "in", Expr, "..", Expr, Block ;
 IfKeyword       = "🌤" | "🌤️" ;
 ElseKeyword     = "🌧" | "🌧️" ;
+ReturnStmt      = "return", Expr ;
+PrintStmt       = "print", "(", Expr, ")" ;
+
+FunctionDecl    = "fn", Ident, "(", [Parameters], ")", "->", Type, Block ;
+Parameters      = Parameter, { ",", Parameter } ;
+Parameter       = Ident, ":", Type ;
+StructDecl      = "struct", Ident, "{", { StructMember }, "}" ;
+StructMember    = FieldDecl | MemberFunction ;
+FieldDecl       = Mutability, Type, Ident ;
+MemberFunction  = FunctionDecl ;
+Type            = "🌰" | "🌳" | "🌸" | "string" | Ident ;
 
 Expr            = AddExpr, [ComparisonOp, AddExpr] ;
 ComparisonOp    = EqualOp | NotEqualOp ;
@@ -15,9 +30,18 @@ EqualOp         = "⚖" | "⚖️" ;
 NotEqualOp      = "✂" | "✂️" ;
 AddExpr         = Term, { ("+" | "-"), Term } ;
 Term            = Factor, { ("*" | "/"), Factor } ;
-Factor          = Number | BoolLit | Ident | OverflowCheck | "(", Expr, ")" ;
+Factor          = Number | BoolLit | String | Call | Ident, [ObjectInit], { Postfix }
+                | OverflowCheck | "(", Expr, ")" ;
+Postfix         = ".", Ident, [Arguments] ;
+Call            = Ident, Arguments | "read", "(", ")" | "print", "(", Expr, ")" ;
+Arguments       = "(", [Expr, { ",", Expr }], ")" ;
+ObjectInit      = "{", [FieldInit, { ",", FieldInit }], "}" ;
+FieldInit       = Ident, ":", Expr ;
 OverflowCheck   = "🪴", "(", Expr, ")" ;
 BoolLit         = "🍎" | "🍏" ;
+String          = '"', { StringChar | Escape }, '"' ;
+Escape          = '\\"' | "\\\\" | "\\n" | "\\t" ;
+StringChar      = any UTF-8 character except quote, backslash, CR, or LF ;
 Number          = Digit, { Digit } ;
 Digit           = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 Ident           = LetterOrUnderscore, { LetterOrUnderscore | Digit } ;
@@ -31,19 +55,30 @@ UppercaseLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I"
 Terminator      = "🪡" ;
 EOF             = end of input ;
 
-(* Layout rule: line feeds are whitespace. If a Stmt starts on the same
-   line where the previous Stmt ended, "🪡" must stand between them.
-   "🪡" is not allowed between the closing "}" of an if-block and
-   ElseKeyword (it is a separator, and ElseKeyword does not start a Stmt).
+(* Lexical rules: ASCII words fn, struct, return, read, print, and string are
+   recognized contextually in their grammar positions, not reserved by the
+   lexer; they remain usable as identifiers in name positions. `string` is the
+   built-in string type when a type is expected. Other types and names use the
+   Ident rule; the primitive numeric and bool types use emoji terminals. -> is one
+   token, as are :, ,, and .; arithmetic punctuation is ASCII. The lexer walks
+   UTF-8 bytes with its hand-written trie/state machine and reports source
+   positions in bytes. A leading UTF-8 BOM is ignored, but any later BOM is an
+   error. Strings accept only \", \\, \n, and \t escapes; line breaks and
+   unsupported escapes are errors. There are no comments.
 
-   There are no comments. Emoji terminals are exact UTF-8 byte sequences.
-   A leading UTF-8 BOM is ignored. Parentheses only group expressions and do
-   not add an AST node. The parser accepts one optional comparison per Expr.
-   Arithmetic operators are left-associative; * and / bind more tightly than
-   + and -.
+   Layout: line feeds separate statements. 🪡 is optional at a line ending and
+   required between statements on one line. It is not allowed between an if
+   block's closing brace and its else keyword. Blocks must contain a statement.
+   The comparison operator is optional and may occur once. Arithmetic is
+   left-associative; * and / bind more tightly than + and -. Parentheses group
+   expressions but do not add AST nodes. Return is parsed as a statement but
+   semantic analysis permits it only inside a function.
 
-   OverflowCheck is represented in the AST but has no runtime behavior in
-   Stage 1. Integer literals in declarations and assignments are checked
-   against the declared integer type's maximum value. Arithmetic overflow
-   behavior is deferred to a later stage.
+   An object initializer names every field exactly once. Field/method postfixes
+   associate left-to-right, so obj.center.x and obj.move().x are chains.
+   print is a statement-form built-in; read() is an i32 expression. An object
+   type is an identifier naming a declared structure.    `while` treats a non-zero i32/i64 as true. `for i in start..end` is an
+   integer half-open range (start inclusive, end exclusive); its loop variable
+   is immutable and scoped to the loop body. 🪴 marks runtime-checked
+   integer arithmetic and traps on signed overflow or invalid division.
 *)

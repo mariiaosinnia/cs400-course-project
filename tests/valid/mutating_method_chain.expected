@@ -1,0 +1,51 @@
+ProgramNode @1:1
+  statements:
+    StructDeclNode @1:1 name=Cell
+      fields:
+        FieldDeclNode @2:1 name=value type=i32 mutable=true
+      methods:
+        FunctionDeclNode @3:1 name=set parameters=(value:i32) result=i32 owner=Cell
+          body:
+            AssignNode @4:1 name=value
+              target:
+                FieldAccessNode @4:6 field=value chain_ends_in_call=false
+                  object:
+                    IdentifierNode @4:1 name=self
+              value:
+                IdentifierNode @4:15 name=value
+            ReturnNode @5:1
+              value:
+                FieldAccessNode @5:13 field=value chain_ends_in_call=false
+                  object:
+                    IdentifierNode @5:8 name=self
+    StructDeclNode @8:1 name=Box
+      fields:
+        FieldDeclNode @9:1 name=cell type=Cell mutable=true
+      methods:
+    VarDeclNode @11:1 storage=mutable type=Box name=b
+      initializer:
+        ObjectLiteralNode @11:15 type=Box fields=cell
+          field cell:
+            ObjectLiteralNode @11:25 type=Cell fields=value
+              field value:
+                NumberNode @11:37 value=2
+    ExprStmtNode @12:1
+      expression:
+        CallNode @12:6 callee=print arguments=1
+          arguments:
+            MemberCallNode @12:17 member=set arguments=1 chain_ends_in_call=true
+              object:
+                FieldAccessNode @12:9 field=cell chain_ends_in_call=false
+                  object:
+                    IdentifierNode @12:7 name=b
+              arguments:
+                NumberNode @12:18 value=12
+    ExprStmtNode @13:1
+      expression:
+        CallNode @13:6 callee=print arguments=1
+          arguments:
+            FieldAccessNode @13:14 field=value chain_ends_in_call=false
+              object:
+                FieldAccessNode @13:9 field=cell chain_ends_in_call=false
+                  object:
+                    IdentifierNode @13:7 name=b

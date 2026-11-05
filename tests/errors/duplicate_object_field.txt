@@ -1,0 +1,4 @@
+struct Point {
+🪵 🌰 x
+}
+🪵 Point p💧Point{x: 1, x: 2}

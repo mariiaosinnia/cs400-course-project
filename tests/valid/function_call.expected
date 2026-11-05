@@ -1,0 +1,19 @@
+ProgramNode @1:1
+  statements:
+    FunctionDeclNode @1:1 name=add parameters=(a:i32,b:i32) result=i32
+      body:
+        ReturnNode @2:1
+          value:
+            BinaryExprNode @2:10 operator=+
+              left:
+                IdentifierNode @2:8 name=a
+              right:
+                IdentifierNode @2:12 name=b
+    ExprStmtNode @4:1
+      expression:
+        CallNode @4:6 callee=print arguments=1
+          arguments:
+            CallNode @4:10 callee=add arguments=2
+              arguments:
+                NumberNode @4:11 value=2
+                NumberNode @4:14 value=3

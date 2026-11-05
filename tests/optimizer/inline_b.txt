@@ -1,0 +1,5 @@
+fn add(value: 🌰) -> 🌰 {
+return value + 2
+}
+🪵🌰 result💧add(3)
+print(result)

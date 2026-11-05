@@ -1,0 +1,4 @@
+fn one(value: 🌰) -> 🌰 {
+return value
+}
+print(one())
