@@ -23,12 +23,13 @@ def describe_failure(name: str, phase: str, result: subprocess.CompletedProcess[
 
 def check_valid(path: Path, work: Path, input_path: Path | None = None,
                 expected_override: Path | None = None,
-                check_ast: bool = True) -> list[str]:
+                check_ast: bool = True, optimizer_case: bool = False) -> list[str]:
     failures: list[str] = []
+    flags = ["--optimize"] if (OPTIMIZE or optimizer_case) else []
     expected_ast = path.with_suffix(".expected")
     if check_ast and expected_ast.is_file():
         ast_result = subprocess.run(
-            [sys.executable, str(COMPILER), *COMPILER_FLAGS, "--ast", str(path)],
+            [sys.executable, str(COMPILER), *flags, "--ast", str(path)],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         actual_ast = ast_result.stdout.rstrip(b"\n")
@@ -42,7 +43,7 @@ def check_valid(path: Path, work: Path, input_path: Path | None = None,
 
     ir_path = work / f"{path.stem}.ll"
     compile_result = subprocess.run(
-        [sys.executable, str(COMPILER), *COMPILER_FLAGS, str(path), str(ir_path)],
+        [sys.executable, str(COMPILER), *flags, str(path), str(ir_path)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     if compile_result.returncode != 0 or compile_result.stderr or not ir_path.is_file():
@@ -136,7 +137,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="sprout-tests-") as directory:
         work = Path(directory)
         for path in valid:
-            case_failures = check_valid(path, work)
+            case_failures = check_valid(path, work, check_ast=not OPTIMIZE)
             if case_failures:
                 failures.extend(case_failures)
                 print(f"FAIL: {path.relative_to(ROOT)}")
@@ -165,7 +166,7 @@ def main() -> int:
                 else:
                     print(f"PASS: {label}")
         for path in optimizer_tests:
-            case_failures = check_valid(path, work)
+            case_failures = check_valid(path, work, optimizer_case=True)
             if case_failures:
                 failures.extend(case_failures)
                 print(f"FAIL: {path.relative_to(ROOT)}")

@@ -230,20 +230,21 @@ excerpt from the builder-generated IR is:
 ```llvm
 br label %"while.condition"
 while.condition:
-  %".3" = load i32, i32* %"n.addr"
+  %".3" = load i32, i32* @"sprout_global_n"
   %".4" = icmp ne i32 %".3", 0
   br i1 %".4", label %"while.body", label %"while.end"
 while.body:
-  %".5" = sub i32 %".3", 1
-  store i32 %".5", i32* %"n.addr"
+  %".5" = call i32 (i8*, ...) @"printf"(i8* getelementptr ([3 x i8], [3 x i8]* @".str.0", i32 0, i32 0), i32 %".3")
+  %".6" = sub i32 %".3", 1
+  store i32 %".6", i32* @"sprout_global_n"
   br label %"while.condition"
 while.end:
 ```
 
-The condition block branches to the body or exit. The final branch is the
-back edge; `for` uses the same shape with an induction-variable increment.
-The body loads and updates the loop variable, while the exit block continues
-with the statements after the loop.
+The condition block loads the top-level `n` from `@sprout_global_n` and branches
+to the body or exit. The body prints, decrements, and stores the global, while
+the final branch is the back edge; `for` uses the same shape with an
+induction-variable increment.
 
 For inlining, the builder emits the same operations before and after the
 transformation; only the call boundary changes. Before:
@@ -255,15 +256,16 @@ transformation; only the call boundary changes. Before:
 After:
 
 ```llvm
-%"__inline_1_value.addr" = alloca i32
-store i32 4, i32* %"__inline_1_value.addr"
-%".4" = load i32, i32* %"__inline_1_value.addr"
+@"sprout_global___inline_inc_1_value" = global i32 0
+store i32 4, i32* @"sprout_global___inline_inc_1_value"
+%".4" = load i32, i32* @"sprout_global___inline_inc_1_value"
 %".5" = add i32 %".4", 1
 ```
 
-The temporary local preserves the parameter's declared type. The copied
-return expression then replaces the call result without evaluating an
-effectful argument twice.
+The call is replaced by a typed immutable declaration whose top-level storage
+is emitted as `@sprout_global___inline_inc_1_value` by the existing codegen.
+The copied return expression loads that global and performs the addition without
+evaluating an effectful argument twice.
 
 The real program is `programs/countdown.txt`: it prompts for a number, reads
 it, constructs a `Counter`, calls its member function, calls the top-level

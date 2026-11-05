@@ -46,6 +46,19 @@ optimizer fixtures. I also added the missing structure/member-function and
 top-level-function use to the real program, and fixed the runner so program
 `.expected` files are not mistaken for AST snapshots.
 
+This update: I changed `compiler.py` so ordinary `--ast` preserves the Stage 2
+parse-only behavior, while optimized AST mode analyzes before and after the
+optimization. I changed the runner so ordinary optimized tests compare only
+program output, while `tests/optimizer` always checks optimized AST and output.
+I updated the inline snapshots to the optimizer's function-specific names and
+documented the actual global storage emitted by codegen in the IR examples.
+I added the requested loop-in-function and loop-body-declaration fixtures.
+Existing compiler, optimizer, codegen, and test-runner structure was kept as-is
+except for these targeted changes.
+
+No commands or tests were run for this update, as requested. The earlier
+environment results in this file describe a previous session, not this update.
+
 What I understood: the parser constructs typed tree nodes before semantic
 analysis, and the analyzer records expression types that codegen uses to choose
 LLVM types. A loop must create a condition block, body block, and exit block;

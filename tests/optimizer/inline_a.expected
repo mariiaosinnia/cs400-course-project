@@ -1,6 +1,6 @@
 ProgramNode @1:1
   statements:
-    VarDeclNode @4:10 storage=immutable type=i32 name=__inline_1_value
+    VarDeclNode @4:10 storage=immutable type=i32 name=__inline_inc_1_value
       initializer:
         NumberNode @4:11 value=4
     ExprStmtNode @4:1
@@ -9,6 +9,6 @@ ProgramNode @1:1
           arguments:
             BinaryExprNode @2:14 operator=+
               left:
-                IdentifierNode @4:10 name=__inline_1_value
+                IdentifierNode @4:10 name=__inline_inc_1_value
               right:
                 NumberNode @2:16 value=1

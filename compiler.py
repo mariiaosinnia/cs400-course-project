@@ -33,6 +33,9 @@ def main(arguments: Sequence[str]) -> int:
         print(f"compilation error: line 1:1: {error.strerror or 'could not read input file'}", file=sys.stderr)
         return 1
     try:
+        if ast_mode and not optimize:
+            print("\n".join(program.format_tree()))
+            return 0
         analysis = analyze(program)
         if optimize:
             from optimizer import optimize as optimize_program
