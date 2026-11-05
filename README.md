@@ -60,7 +60,7 @@ Stage 3 loops use ordinary ASCII contextual words. `while` accepts an `i32` or
 `i64` condition. A `for` loop counts from its inclusive start to its exclusive
 end; its immutable index is scoped to the body.
 
-Loop example 1, a countdown:
+Loop example 1, a countdown with `while`:
 
 ```text
 🪵🌰 n💧read()
@@ -70,16 +70,24 @@ n💧n-1
 }
 ```
 
-Loop example 2, a sum inside a function:
+The integer condition is tested before every iteration, so this prints the
+current value and then decrements it until it reaches zero.
+
+Loop example 2, a half-open range with `for`:
 
 ```text
 fn sum(limit: 🌰) -> 🌰 {
 🪵🌰 result💧0
-for i in 0..limit { result💧result+i }
+for i in 0..limit {
+result💧result+i
+}
 return result
 }
 print(sum(4))
 ```
+
+The loop visits `0`, `1`, `2`, and `3`; its immutable index is scoped to the
+body, and the function returns their sum.
 
 The full EBNF, including lexical and layout rules, is in
 [`grammar.ebnf`](grammar.ebnf).
@@ -228,55 +236,89 @@ The loop lowering produces ordinary basic-block back edges. A representative
 excerpt from the builder-generated IR is:
 
 ```llvm
-br label %"while.condition"
+entry:
+  store i32 3, i32* @"sprout_global_n"
+  br label %"while.condition"
 while.condition:
-  %".3" = load i32, i32* @"sprout_global_n"
-  %".4" = icmp ne i32 %".3", 0
+  %"n" = load i32, i32* @"sprout_global_n"
+  %".4" = icmp ne i32 %"n", 0
   br i1 %".4", label %"while.body", label %"while.end"
 while.body:
-  %".5" = call i32 (i8*, ...) @"printf"(i8* getelementptr ([3 x i8], [3 x i8]* @".str.0", i32 0, i32 0), i32 %".3")
-  %".6" = sub i32 %".3", 1
-  store i32 %".6", i32* @"sprout_global_n"
+  %"n.1" = load i32, i32* @"sprout_global_n"
+  %".6" = bitcast [4 x i8]* @".str.0" to i8*
+  %".7" = call i32 (i8*, ...) @"printf"(i8* %".6", i32 %"n.1")
+  %"n.2" = load i32, i32* @"sprout_global_n"
+  %".8" = sub i32 %"n.2", 1
+  store i32 %".8", i32* @"sprout_global_n"
   br label %"while.condition"
 while.end:
 ```
 
-The condition block loads the top-level `n` from `@sprout_global_n` and branches
-to the body or exit. The body prints, decrements, and stores the global, while
-the final branch is the back edge; `for` uses the same shape with an
-induction-variable increment.
+The `while.condition` block loads `n`, tests whether it is non-zero, and chooses
+the body or the exit. The `while.body` block loads and prints `n`, decrements
+it, and stores the new value back to the global. The final `br` from
+`while.body` to `while.condition` is the loop's back edge.
 
 For inlining, the builder emits the same operations before and after the
 transformation; only the call boundary changes. Before:
 
 ```llvm
-%".4" = call i32 @"sprout_fn_inc"(i32 4)
+define i32 @"main"()
+{
+entry:
+  %".2" = call i32 @"sprout_fn_inc"(i32 4)
+  %".3" = bitcast [4 x i8]* @".str.0" to i8*
+  %".4" = call i32 (i8*, ...) @"printf"(i8* %".3", i32 %".2")
+  ret i32 0
+}
 ```
 
 After:
 
 ```llvm
 @"sprout_global___inline_inc_1_value" = global i32 0
-store i32 4, i32* @"sprout_global___inline_inc_1_value"
-%".4" = load i32, i32* @"sprout_global___inline_inc_1_value"
-%".5" = add i32 %".4", 1
+define i32 @"main"()
+{
+entry:
+  store i32 4, i32* @"sprout_global___inline_inc_1_value"
+  %"__inline_inc_1_value" = load i32, i32* @"sprout_global___inline_inc_1_value"
+  %".3" = add i32 %"__inline_inc_1_value", 1
+  %".4" = bitcast [4 x i8]* @".str.0" to i8*
+  %".5" = call i32 (i8*, ...) @"printf"(i8* %".4", i32 %".3")
+  ret i32 0
+}
 ```
 
-The call is replaced by a typed immutable declaration whose top-level storage
-is emitted as `@sprout_global___inline_inc_1_value` by the existing codegen.
-The copied return expression loads that global and performs the addition without
-evaluating an effectful argument twice.
+The call to `sprout_fn_inc` disappears, its parameter becomes a typed variable,
+and the function body is embedded at the call site.
 
-The real program is `programs/countdown.txt`: it prompts for a number, reads
-it, constructs a `Counter`, calls its member function, calls the top-level
-`decrement` function, and visibly uses a `while` loop to print a countdown.
-Build and run it with:
+## The real program
+
+`programs/countdown.txt` prompts for a starting integer.
+It reads the integer with `read()`.
+It constructs a `Counter` structure.
+It calls the `Counter.current` member method.
+It calls the top-level `decrement` function.
+It uses a `while` loop to print a countdown.
+Session one supplies input from `programs/countdown.in`.
+Session two supplies input from `programs/countdown_second.in`.
+Build the LLVM module and native object with:
 
 ```sh
 python3 compiler.py programs/countdown.txt countdown.ll
 llc -filetype=obj countdown.ll -o countdown.o
 clang -no-pie countdown.o -o countdown
+```
+
+Run session one:
+
+```sh
 ./countdown < programs/countdown.in
+```
+
+Run session two:
+
+```sh
 ./countdown < programs/countdown_second.in
 ```
 

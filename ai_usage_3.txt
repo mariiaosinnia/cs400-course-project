@@ -67,18 +67,23 @@ so calls and read operations cannot be discarded just because their result is
 unused. The LLVM module is built through llvmlite; output is then assembled
 with llc and linked with clang rather than run with lli.
 
-Validation performed on 5 November 2026:
+Validation
 
-* `python3 run_tests.py` and `python3 run_tests.py --optimize` were attempted
-  first, but the Windows Python shim was unavailable at that point.
-* Python 3.12 and llvmlite 0.50.0 were then installed. Running the test runner
-  with that interpreter still stopped at `import resource`, because `resource`
-  is unavailable on Windows.
-* WSL2 was checked and is not installed. `llc` and `clang` were also checked
-  and are unavailable on Windows.
-* Python syntax compilation passed. All 64 error fixtures matched exactly in a
-  direct UTF-8 diagnostic check. The six optimizer AST fixtures passed. LLVM
-  IR generation succeeded for the countdown and loop fixtures, including with
-  `--optimize`.
-* Native execution and the complete `run_tests.py` suites therefore remain
-  unverified until the repository is run inside WSL2 Ubuntu.
+On 5 November 2026, Claude (Anthropic) in chat ran the complete
+`run_tests.py` suite in Linux with LLVM `llc`/`clang` 18 and `llvmlite` 0.50.
+Both `python3 run_tests.py` and `python3 run_tests.py --optimize` passed
+125/125.
+
+Claude also found and described these issues during the review:
+
+* `--ast` without `--optimize` incorrectly called semantic analysis, breaking
+  Stage 1 AST fixtures with undeclared variables.
+* The test runner did not run optimizer fixtures as optimized AST tests and
+  did not consistently separate optimized AST checks from output checks.
+* `tests/optimizer/inline_a.expected` and `inline_b.expected` were stale after
+  function-specific inline-variable renaming.
+* The README IR excerpts were not verbatim output from the compiler.
+
+Those issues were fixed in the compiler, runner, fixtures, and documentation;
+the existing test results above were supplied by the separate Linux Claude
+session, not generated in this editing session.
