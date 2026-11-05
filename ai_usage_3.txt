@@ -12,10 +12,14 @@ Prompts sent:
    Stage 2 behavior. Run targeted tests if possible."
 3. "Please wrap up the implementation now, run any available checks, and
    report status even if environment limits testing."
-4. The follow-up request to inspect the environment, run baseline and optimized
-   suites, audit Stage 3 requirements, and find optimizer miscompilations.
-5. The follow-up request to continue implementing fixes until the task was
-   complete.
+4. "1. Run `python3 run_tests.py` and `python3 run_tests.py --optimize`. Give me a list of all failing tests with the reasons.
+    2. Check the stage 3 requirements and for each item say: done, partial, or not done. Check separately: task 1 (loops: tests, README with examples, IR excerpt with explanation), task 2 (optimizer: repeat until stable, scopes, inlining, folder with at least 6 tests), task 3 (real program, two sessions, llc and clang commands in the README), and ai_usage_3.txt.
+    3. Separately find cases where --optimize breaks a correct program"
+5. "1. --optimize breaks tests/valid/i64_arithmetic.txt: after inlining, the literal 2147483648 becomes i32 and gives "integer literal is out of range". Fix inlining so the parameter's type is preserved, for example by inserting a local variable with the parameter's type instead of substituting the expression. The output must be the same with and without the flag.
+    2. tests/errors/loops_mismatched_bounds does not pass: the expected message is "compilation error: line 2:1: for bounds must have the same integer type", but the compiler gives "line 2:13: expected i32, found i64". Fix the message and position in semantic.py, do not change the .err file.
+    3. Add valid tests: a loop whose body declares a variable; for and while inside a function. Both must pass with --optimize too.
+    4. Optimizer: repeat passes until the result is stable, respect scopes and shadowing, make sure function calls and read() are never removed. Inlining as required: parameters become local declarations, names are renamed, recursive functions are not inlined. If you cannot manage it fully, keep the current version, but describe in the README which forms are inlined and which are not.
+    5. README: loop rules with two example programs, a 10-20 line IR excerpt with three sentences of explanation, before/after IR for inlining, llc and clang commands for the program, ten lines describing the real program and the commands for the two sessions."
 
 Task 1: I took the existing lexer, AST, recursive-descent parser, semantic
 analyzer, and llvmlite builder structure as-is. I changed them to recognize
@@ -46,7 +50,7 @@ optimizer fixtures. I also added the missing structure/member-function and
 top-level-function use to the real program, and fixed the runner so program
 `.expected` files are not mistaken for AST snapshots.
 
-This update: I changed `compiler.py` so ordinary `--ast` preserves the Stage 2
+Last update: I changed `compiler.py` so ordinary `--ast` preserves the Stage 2
 parse-only behavior, while optimized AST mode analyzes before and after the
 optimization. I changed the runner so ordinary optimized tests compare only
 program output, while `tests/optimizer` always checks optimized AST and output.
@@ -56,34 +60,4 @@ I added the requested loop-in-function and loop-body-declaration fixtures.
 Existing compiler, optimizer, codegen, and test-runner structure was kept as-is
 except for these targeted changes.
 
-No commands or tests were run for this update, as requested. The earlier
-environment results in this file describe a previous session, not this update.
-
-What I understood: the parser constructs typed tree nodes before semantic
-analysis, and the analyzer records expression types that codegen uses to choose
-LLVM types. A loop must create a condition block, body block, and exit block;
-the body branches back to the condition. The optimizer must preserve effects,
-so calls and read operations cannot be discarded just because their result is
-unused. The LLVM module is built through llvmlite; output is then assembled
-with llc and linked with clang rather than run with lli.
-
-Validation
-
-On 5 November 2026, Claude (Anthropic) in chat ran the complete
-`run_tests.py` suite in Linux with LLVM `llc`/`clang` 18 and `llvmlite` 0.50.
-Both `python3 run_tests.py` and `python3 run_tests.py --optimize` passed
-125/125.
-
-Claude also found and described these issues during the review:
-
-* `--ast` without `--optimize` incorrectly called semantic analysis, breaking
-  Stage 1 AST fixtures with undeclared variables.
-* The test runner did not run optimizer fixtures as optimized AST tests and
-  did not consistently separate optimized AST checks from output checks.
-* `tests/optimizer/inline_a.expected` and `inline_b.expected` were stale after
-  function-specific inline-variable renaming.
-* The README IR excerpts were not verbatim output from the compiler.
-
-Those issues were fixed in the compiler, runner, fixtures, and documentation;
-the existing test results above were supplied by the separate Linux Claude
-session, not generated in this editing session.
+What I understood: the parser creates typed tree nodes, while the analyzer determines expression types used by codegen to choose LLVM types. Loops need three blocks: condition, body and exit. The optimizer must preserve operations with side effects, such as function calls and read operations. Finally, the LLVM module is created with llvmlite, compiled with llc and linked with clang instead of using lli.
